@@ -2,6 +2,7 @@ import {
   AgoraEnv,
   IMediaPlayer,
   IRtcEngineEx,
+  RenderModeType,
   RtcConnection,
   VideoCanvas,
   VideoMirrorModeType,
@@ -121,12 +122,16 @@ export class RtcSurfaceView extends Component<Props, State> {
   updateRenderer = () => {
     const { canvas, connection } = this.props;
     const { isMirror } = this.state;
-    AgoraEnv.AgoraRendererManager?.setRendererContext({
+    AgoraEnv.AgoraRendererManager?.setupLocalVideo({
       ...canvas,
       ...connection,
-      mirrorMode: isMirror
-        ? VideoMirrorModeType.VideoMirrorModeEnabled
-        : VideoMirrorModeType.VideoMirrorModeDisabled,
+      rendererOptions: {
+        mirror: isMirror,
+        contentMode: RenderModeType.RenderModeHidden,
+      },
+      // mirrorMode: isMirror
+      //   ? VideoMirrorModeType.VideoMirrorModeEnabled
+      //   : VideoMirrorModeType.VideoMirrorModeDisabled,
       view: this.getHTMLElement(),
     });
   };

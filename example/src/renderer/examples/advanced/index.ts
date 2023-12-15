@@ -15,7 +15,7 @@ import MediaPlayer from './MediaPlayer/MediaPlayer';
 import MediaRecorder from './MediaRecorder/MediaRecorder';
 import MusicContentCenter from './MusicContentCenter/MusicContentCenter';
 import PlayEffect from './PlayEffect/PlayEffect';
-import ProcessVideoRawData from './ProcessVideoRawData/ProcessVideoRawData';
+// import ProcessVideoRawData from './ProcessVideoRawData/ProcessVideoRawData';
 import PushVideoFrame from './PushVideoFrame/PushVideoFrame';
 import RTMPStreaming from './RTMPStreaming/RTMPStreaming';
 import RhythmPlayer from './RhythmPlayer/RhythmPlayer';
@@ -99,10 +99,6 @@ const Advanced = {
     {
       name: 'PlayEffect',
       component: PlayEffect,
-    },
-    {
-      name: 'ProcessVideoRawData',
-      component: ProcessVideoRawData,
     },
     {
       name: 'PushVideoFrame',
