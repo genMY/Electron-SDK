@@ -1,13 +1,10 @@
 import {
-  AgoraEnv,
   IMediaPlayer,
   IRtcEngineEx,
-  RenderModeType,
   RtcConnection,
   VideoCanvas,
   VideoMirrorModeType,
   VideoSourceType,
-  VideoViewSetupMode,
   createAgoraRtcEngine,
 } from 'agora-electron-sdk';
 import React, { Component } from 'react';
@@ -25,12 +22,6 @@ interface State {
   isMirror: boolean;
   uniqueId: number;
 }
-
-type SetupVideoFunc =
-  | typeof IRtcEngineEx.prototype.setupRemoteVideoEx
-  | typeof IRtcEngineEx.prototype.setupRemoteVideo
-  | typeof IRtcEngineEx.prototype.setupLocalVideo
-  | typeof IMediaPlayer.prototype.setView;
 
 export class RtcSurfaceView extends Component<Props, State> {
   constructor(props: Props) {
@@ -52,16 +43,7 @@ export class RtcSurfaceView extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const { canvas, connection } = this.props;
-    this.getSetupVideoFunc().call(
-      this,
-      {
-        ...canvas,
-        setupMode: VideoViewSetupMode.VideoViewSetupAdd,
-        view: this.getHTMLElement(),
-      },
-      connection!
-    );
+    this.updateRender();
   }
 
   shouldComponentUpdate(
@@ -77,63 +59,59 @@ export class RtcSurfaceView extends Component<Props, State> {
   }
 
   componentDidUpdate() {
-    this.updateRenderer();
+    this.updateRender();
   }
 
   componentWillUnmount() {
-    const { canvas, connection } = this.props;
+    const dom = this.getHTMLElement();
 
-    this.getSetupVideoFunc().call(
-      this,
-      {
-        ...canvas,
-        setupMode: VideoViewSetupMode.VideoViewSetupRemove,
-        view: this.getHTMLElement(),
-      },
-      connection!
-    );
+    createAgoraRtcEngine().destroyRendererByView(dom);
   }
 
-  getSetupVideoFunc = (): SetupVideoFunc => {
+  updateRender = () => {
     const { canvas, connection } = this.props;
+    const { isMirror } = this.state;
+    const dom = this.getHTMLElement();
     const engine = createAgoraRtcEngine();
 
-    let func: SetupVideoFunc;
+    let funcName:
+      | typeof IRtcEngineEx.prototype.setupRemoteVideoEx
+      | typeof IRtcEngineEx.prototype.setupRemoteVideo
+      | typeof IRtcEngineEx.prototype.setupLocalVideo
+      | typeof IMediaPlayer.prototype.setView;
 
     if (canvas.sourceType === undefined) {
       if (canvas.uid) {
-        func = engine.setupRemoteVideo;
+        funcName = engine.setupRemoteVideo;
       } else {
-        func = engine.setupLocalVideo;
+        funcName = engine.setupLocalVideo;
       }
     } else if (canvas.sourceType === VideoSourceType.VideoSourceRemote) {
-      func = engine.setupRemoteVideo;
+      funcName = engine.setupRemoteVideo;
     } else {
-      func = engine.setupLocalVideo;
+      funcName = engine.setupLocalVideo;
     }
 
-    if (func === engine.setupRemoteVideo && connection) {
-      func = engine.setupRemoteVideoEx;
+    if (funcName === engine.setupRemoteVideo && connection) {
+      funcName = engine.setupRemoteVideoEx;
     }
 
-    return func;
-  };
-
-  updateRenderer = () => {
-    const { canvas, connection } = this.props;
-    const { isMirror } = this.state;
-    AgoraEnv.AgoraRendererManager?.setupLocalVideo({
-      ...canvas,
-      ...connection,
-      rendererOptions: {
-        mirror: isMirror,
-        contentMode: RenderModeType.RenderModeHidden,
+    try {
+      engine.destroyRendererByView(dom);
+    } catch (e) {
+      console.warn(e);
+    }
+    funcName.call(
+      this,
+      {
+        ...canvas,
+        mirrorMode: isMirror
+          ? VideoMirrorModeType.VideoMirrorModeEnabled
+          : VideoMirrorModeType.VideoMirrorModeDisabled,
+        view: dom,
       },
-      // mirrorMode: isMirror
-      //   ? VideoMirrorModeType.VideoMirrorModeEnabled
-      //   : VideoMirrorModeType.VideoMirrorModeDisabled,
-      view: this.getHTMLElement(),
-    });
+      connection!
+    );
   };
 
   render() {
@@ -146,7 +124,7 @@ export class RtcSurfaceView extends Component<Props, State> {
         onClick={() => {
           this.setState((preState) => {
             return { isMirror: !preState.isMirror };
-          }, this.updateRenderer);
+          }, this.updateRender);
         }}
       >
         <div
